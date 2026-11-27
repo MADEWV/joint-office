@@ -7,6 +7,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebas
 import {
   getDatabase, ref, onValue, off, push, set, update, remove, get
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+import { OfficeMap } from "./office-map.js";
 
 /* ── 1. Firebase 설정 ───────────────────────────────────────── */
 const firebaseConfig = {
@@ -154,7 +155,7 @@ async function openRoom(passcode, create = false) {
     state.members = snap.val() || {};
     renderMap();
     renderProfiles();
-    $("mapSub").textContent = `${Object.keys(state.members).length}명 · 실시간`;
+    $("mapSub").textContent = `${Object.keys(state.members).length}명 · 자율 이동 중`;
   }));
 
   state.unsubs.push(onValue(ref(db, `rooms/${hash}/messages`), snap => {
@@ -192,46 +193,22 @@ async function openRoom(passcode, create = false) {
   return { ok: true, hash };
 }
 
-/* ── 6. 렌더: 오피스 맵 ───────────────────────────────────── */
+/* ── 6. 렌더: 오피스 맵 (2D 캔버스) ───────────────────────── */
+const officeMap = new OfficeMap({
+  canvas: $("officeMap"),
+  wrap: $("officeWrap"),
+  statuses: STATUSES,
+  onSelect: (id) => openMemberModal(id),
+  getMyId: () => state.myId
+});
+window.officeMap2d = officeMap;
+window.getMemberPositions = () => officeMap.getPositions();
+window.getMapInfo = () => officeMap.layoutInfo;
+
 function renderMap() {
-  const byZone = {};
-  ZONES.forEach(z => (byZone[z.id] = []));
-  Object.values(state.members).forEach(m => {
-    if (!m) return;
-    (byZone[zoneOf(m.zone).id] || byZone.flex).push(m);
-  });
-
-  $("officeMap").innerHTML = ZONES.map(z => {
-    const people = sortMembers(byZone[z.id] || []);
-    const body = people.length
-      ? people.map(m => memberCard(m)).join("")
-      : `<div class="zone-empty">자리 비어 있음</div>`;
-    return `<div class="zone" data-zone="${z.id}">
-      <div class="zone-head"><span class="zi">${z.emoji}</span>${esc(z.label)}</div>
-      <div class="zone-people">${body}</div>
-    </div>`;
-  }).join("");
-
+  officeMap.sync(state.members);
   $("legend").innerHTML = STATUSES.map(s =>
     `<span><i class="status-dot" style="background:${s.color}"></i>${s.label}</span>`).join("");
-}
-
-function memberCard(m) {
-  const st = statusOf(m.status);
-  const ring = m.color || "#dddddd";
-  const isMe = m.id === state.myId;
-  return `<div class="member${isMe ? " me" : ""}" data-id="${esc(m.id)}" title="${esc(m.name)} — 눌러서 상태 변경">
-    <div class="avatar" style="--ring:${esc(ring)}">${esc(m.emoji || "🙂")}</div>
-    <div class="member-main">
-      <div class="member-top">
-        <span class="status-dot" style="background:${st.color}"></span>
-        <span class="member-name">${esc(m.name)}</span>
-        <span class="status-pill">${st.label}</span>
-      </div>
-      <div class="member-role">${esc(m.role || "멤버")}</div>
-      ${m.message ? `<div class="bubble">${esc(m.message)}</div>` : ""}
-    </div>
-  </div>`;
 }
 
 /* ── 7. 렌더: 대화방 ──────────────────────────────────────── */
@@ -545,11 +522,7 @@ function wireEvents() {
     f.focus();
   });
 
-  // 오피스 맵 클릭
-  $("officeMap").addEventListener("click", (e) => {
-    const card = e.target.closest(".member");
-    if (card) openMemberModal(card.dataset.id);
-  });
+  // 오피스 맵 클릭은 캔버스가 직접 처리한다 (office-map.js)
 
   // 멤버 모달
   $("addMemberBtn").addEventListener("click", () => openMemberModal(null));
