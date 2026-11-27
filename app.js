@@ -146,6 +146,9 @@ async function openRoom(passcode, create = false) {
   state.hash = hash;
   state.members = {};
   state.messages = {};
+  stickToBottom = true;
+  lastNewestKey = null;
+  unread = 0;
 
   state.unsubs.push(onValue(ref(db, `rooms/${hash}/members`), snap => {
     state.members = snap.val() || {};
@@ -177,6 +180,7 @@ async function openRoom(passcode, create = false) {
   $("app").hidden = false;
   renderSettings();
   renderProfiles();
+  syncScrollToBottomAfterLayout();
 
   // 세션당 1회 입장 알림
   if (!sessionStorage.getItem("jointOffice.greeted." + hash)) {
@@ -239,7 +243,9 @@ function renderMessages() {
     .slice(-200);
 
   const box = $("messages");
-  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  const wasBottom = stickToBottom || isNearBottom(box);
+  const prevTop = box.scrollTop;
+  const prevNewest = lastNewestKey;
   let lastDate = "";
 
   box.innerHTML = list.map(m => {
@@ -265,7 +271,83 @@ function renderMessages() {
     </div>`;
   }).join("");
 
-  if (atBottom) box.scrollTop = box.scrollHeight;
+  const newest = list.length ? list[list.length - 1] : null;
+  const newestKey = newest ? newest.key : null;
+
+  if (prevNewest && newestKey && newestKey !== prevNewest && !wasBottom) {
+    // 위로 올라가 과거 대화를 보는 동안 새 메시지가 도착 → 버튼 배지에 알림
+    const idx = list.findIndex(m => m.key === prevNewest);
+    const added = idx >= 0 ? list.slice(idx + 1) : [newest];
+    unread += added.filter(m => m && m.type === "chat").length;
+  }
+  lastNewestKey = newestKey;
+
+  if (wasBottom) {
+    unread = 0;
+    jumpToBottom(box);
+    // 폰트·이미지 반영 뒤 한 번 더 (레이아웃이 늦게 잡히는 경우 대비)
+    requestAnimationFrame(() => { if (stickToBottom) jumpToBottom(box); });
+  } else {
+    box.scrollTop = prevTop; // innerHTML 교체로 0이 된 읽던 위치 복원
+  }
+  updateScrollButton();
+}
+
+/* ── 7-1. 스크롤: 최신 대화 따라가기 · 맨 아래 버튼 ────────── */
+const NEAR_BOTTOM_PX = 120; // 바닥에서 이만큼 안이면 '맨 아래를 보고 있다'로 본다
+let stickToBottom = true;   // 사용자가 맨 아래를 따라가고 있는지
+let lastNewestKey = null;   // 마지막으로 그린 최신 메시지 키
+let unread = 0;             // 위로 올라간 동안 도착한 새 대화 수
+
+function isNearBottom(box = $("messages"), px = NEAR_BOTTOM_PX) {
+  if (!box) return true;
+  return box.scrollHeight - box.scrollTop - box.clientHeight <= px;
+}
+
+function jumpToBottom(box = $("messages")) {
+  if (!box) return;
+  const prev = box.style.scrollBehavior;
+  box.style.scrollBehavior = "auto"; // CSS의 smooth를 잠시 끄고 즉시 이동
+  box.scrollTop = box.scrollHeight;
+  box.style.scrollBehavior = prev;
+}
+
+function slideToBottom() {
+  const box = $("messages");
+  if (!box) return;
+  stickToBottom = true;
+  unread = 0;
+  box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+  updateScrollButton();
+}
+
+function updateScrollButton() {
+  const btn = $("scrollBottom");
+  if (!btn) return;
+  const box = $("messages");
+  const show = box.scrollHeight - box.scrollTop - box.clientHeight > NEAR_BOTTOM_PX;
+  btn.hidden = !show;
+  const badge = $("scrollBadge");
+  if (!badge) return;
+  badge.hidden = !(show && unread > 0);
+  badge.textContent = unread > 99 ? "99+" : String(unread);
+}
+
+function onMessagesScroll() {
+  stickToBottom = isNearBottom($("messages"));
+  if (stickToBottom) unread = 0;
+  updateScrollButton();
+}
+
+function syncScrollToBottomAfterLayout() {
+  // display:none 이던 대화방이 보이게 된 직후에는 scrollHeight/clientHeight가 0이라
+  // 그 프레임에서는 내릴 수 없다. 두 프레임 뒤(레이아웃 확정 후) 확실히 맨 아래로.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const box = $("messages");
+    if (!box) return;
+    if (stickToBottom || isNearBottom(box)) jumpToBottom(box);
+    updateScrollButton();
+  }));
 }
 
 function renderProfiles() {
@@ -549,10 +631,21 @@ function wireEvents() {
     $("passInput").focus();
   });
 
+  // 대화 스크롤: 맨 아래 추적 + '최신 대화' 버튼
+  $("messages").addEventListener("scroll", onMessagesScroll, { passive: true });
+  $("scrollBottom").addEventListener("click", slideToBottom);
+  window.addEventListener("resize", () => {
+    if (stickToBottom) jumpToBottom();
+    updateScrollButton();
+  });
+
   // 모바일 탭
   document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
-    document.querySelector(".layout").dataset.view = t.dataset.view;  }));
+    document.querySelector(".layout").dataset.view = t.dataset.view;
+    // 숨어 있던 대화방이 보이면 그 시점에 다시 맨 아래로 맞춘다
+    if (t.dataset.view === "chat") syncScrollToBottomAfterLayout();
+  }));
 
   // ESC 닫기
   document.addEventListener("keydown", (e) => {

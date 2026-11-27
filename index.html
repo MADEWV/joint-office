@@ -82,7 +82,14 @@
         <h2>대화방</h2>
         <span class="panel-sub" id="chatSub"></span>
       </div>
-      <div class="messages" id="messages" aria-live="polite"></div>
+      <div class="chat-body">
+        <div class="messages" id="messages" aria-live="polite"></div>
+        <button class="scroll-bottom" id="scrollBottom" type="button" hidden aria-label="최신 대화로 이동">
+          <span class="sb-arrow" aria-hidden="true">↓</span>
+          <span class="sb-text">최신 대화</span>
+          <span class="sb-badge" id="scrollBadge" hidden>0</span>
+        </button>
+      </div>
       <form class="composer" id="composer" autocomplete="off">
         <select id="profileSelect" class="composer-profile" aria-label="발신자 프로필"></select>
         <input id="msgInput" class="composer-input" placeholder="메시지 입력 — @후추 처럼 멘션할 수 있어요" maxlength="1000" />

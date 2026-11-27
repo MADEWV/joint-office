@@ -208,11 +208,36 @@ input[type="color"]{padding:.2rem;height:2.6rem;cursor:pointer}
 .map-tip{flex:0 0 auto;font-size:.7rem;color:#a9a19a;margin:.5rem 1rem 0;text-align:center}
 
 /* ─────────── 대화방 ─────────── */
+/* 메시지 영역 + 그 위에 떠 있는 '최신 대화' 버튼의 기준 상자 */
+.chat-body{
+  position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+}
 .messages{
   flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
   padding:.3rem .9rem .6rem;display:flex;flex-direction:column;gap:.5rem;
   scroll-behavior:smooth;
 }
+/* 맨 아래로 내리기 플로팅 버튼 — 입력창 바로 위 우측 */
+.scroll-bottom{
+  position:absolute;right:.9rem;bottom:.85rem;z-index:5;
+  display:inline-flex;align-items:center;gap:.32rem;
+  padding:.4rem .68rem;border-radius:999px;
+  border:1px solid #f0c9b8;background:rgba(255,253,250,.97);
+  color:#b33c14;font-weight:800;font-size:.76rem;line-height:1;cursor:pointer;
+  box-shadow:0 8px 20px rgba(74,58,42,.16), 0 1px 3px rgba(74,58,42,.08);
+  backdrop-filter:blur(6px);
+  animation:pop .18s ease both;
+  transition:background .15s, transform .15s;
+}
+.scroll-bottom:hover{background:#fff;transform:translateY(-1px)}
+.scroll-bottom:active{transform:none}
+.sb-arrow{font-size:.9rem;line-height:1}
+.sb-badge{
+  min-width:1.15rem;height:1.15rem;padding:0 .3rem;border-radius:999px;
+  display:inline-grid;place-items:center;font-size:.66rem;font-weight:900;
+  background:var(--accent);color:#fff;
+}
+.sb-badge:empty{display:none}
 .msg{display:flex;gap:.5rem;max-width:92%;animation:pop .2s ease both}
 .msg .avatar{width:1.75rem;height:1.75rem;flex:0 0 1.75rem;font-size:.9rem;align-self:flex-start;margin-top:.1rem}
 .msg-body{min-width:0}
