@@ -281,9 +281,9 @@ input[type="color"]{padding:.2rem;height:2.6rem;cursor:pointer}
 /* ─────────── 반응형 ─────────── */
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;grid-template-rows:auto;padding:.7rem}
-  /* 맵 보기: 구역을 내용 높이만큼 키우고 레이아웃 영역이 자연스럽게 위아래로 스크롤
-     (좁은 화면에서 구역 안에 작은 스크롤이 겹치지 않게) */
-  .layout[data-view="map"]{overflow-y:auto;align-content:start;overscroll-behavior:contain}
+  /* 맵 보기: 그리드 대신 일반 블록 흐름 — 구역이 내용 높이만큼 자라고
+     레이아웃 영역이 자연스럽게 위아래로 스크롤된다 */
+  .layout[data-view="map"]{display:block;overflow-y:auto;overscroll-behavior:contain}
   .layout[data-view="map"] .map-panel{height:auto}
   .layout[data-view="map"] .office{flex:0 0 auto;height:auto}
   .layout[data-view="map"] .zone-people{overflow:visible}
