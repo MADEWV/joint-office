@@ -281,8 +281,12 @@ input[type="color"]{padding:.2rem;height:2.6rem;cursor:pointer}
 /* ─────────── 반응형 ─────────── */
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;grid-template-rows:auto;padding:.7rem}
-  /* 맵 보기: 레이아웃 영역이 자연스럽게 위아래로 스크롤 */
+  /* 맵 보기: 구역을 내용 높이만큼 키우고 레이아웃 영역이 자연스럽게 위아래로 스크롤
+     (좁은 화면에서 구역 안에 작은 스크롤이 겹치지 않게) */
   .layout[data-view="map"]{overflow-y:auto;align-content:start;overscroll-behavior:contain}
+  .layout[data-view="map"] .map-panel{height:auto}
+  .layout[data-view="map"] .office{flex:0 0 auto;height:auto}
+  .layout[data-view="map"] .zone-people{overflow:visible}
   /* 대화 보기: 패널이 남은 높이를 정확히 채우고 메시지만 내부 스크롤 */
   .layout[data-view="chat"]{grid-template-rows:minmax(0,1fr);overflow:hidden}
   .mobile-tabs{
