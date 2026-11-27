@@ -1649,78 +1649,86 @@ export class OfficeMap {
     const myId = this.getMyId();
     const placed = [];
     const order = [...actors].sort((a, b) => a.y - b.y);
+    const CVPAD = 3;
     ctx.textBaseline = "middle";
+
+    const overlaps = (r, q) =>
+      r.x < q.x + q.w + 3 && r.x + r.w + 3 > q.x &&
+      r.y < q.y + q.h + 2 && r.y + r.h + 2 > q.y;
 
     for (const a of order) {
       const p = this.toScreen(a.x, a.y);
-      const headTop = p.y - (62 * this.sy);
+      const headTop = p.y - 62 * this.sy;
       const name = a.name;
       const offline = a.status === "offline";
 
       ctx.font = "800 11px 'Noto Sans KR',system-ui,sans-serif";
       const nameW = ctx.measureText(name).width;
       const emoji = a.emoji || "🙂";
-      ctx.font = "700 11px 'Noto Sans KR',system-ui,sans-serif";
       const emojiW = ctx.measureText(emoji).width + 3;
       const pillW = 9 + 7 + emojiW + nameW + 8;
       const pillH = 17;
 
-      // 말풍선
+      // 말풍선 (좁은 화면에서는 폭을 줄인다)
       let bubble = null;
       if (a.message) {
         ctx.font = "600 10.5px 'Noto Sans KR',system-ui,sans-serif";
-        const wrapped = this.wrapBubble(ctx, a.message, 132);
+        const maxW = Math.max(96, Math.min(146, this.cssW * 0.30));
+        const wrapped = this.wrapBubble(ctx, a.message, maxW - 14);
         const tw = Math.max(...wrapped.lines.map(l => ctx.measureText(l).width), 10);
-        const bw = Math.min(146, tw + 14);
+        const bw = Math.min(maxW, tw + 14);
         const bh = wrapped.lines.length * 13 + 9;
-        bubble = { w: bw, h: bh, lines: wrapped.lines };
+        bubble = { w: bw, h: bh, lines: wrapped.lines, trimmed: wrapped.trimmed };
       }
 
-      let pillY = headTop - 4 - pillH;
-      let bubbleY = pillY - (bubble ? bubble.h + 5 : 0);
-      let left = p.x - pillW / 2;
+      const groupW = Math.max(pillW, bubble ? bubble.w : 0);
+      const groupH = pillH + (bubble ? bubble.h + 5 : 0);
+      const baseTop = headTop - 3 - groupH;
 
-      // 겹침 회피
-      const rectOf = (bx, by) => {
-        const w = Math.max(pillW, bubble ? bubble.w : 0);
-        const x = bubble ? p.x - bubble.w / 2 : left;
-        return { x, y: bubbleY, w, h: (pillY + pillH) - bubbleY };
-      };
-      for (let iter = 0; iter < 8; iter++) {
-        const r0 = rectOf();
-        const hit = placed.find(q =>
-          r0.x < q.x + q.w + 3 && r0.x + r0.w + 3 > q.x &&
-          r0.y < q.y + q.h + 2 && r0.y + r0.h + 2 > q.y);
-        if (!hit) break;
-        const shift = (r0.y + r0.h) - hit.y + 4;
-        pillY -= shift; bubbleY -= shift;
-        if (bubbleY < 2) break;
+      // 겹치지 않는 자리 찾기: 위로 → 살짝 좌우 → 더 위로
+      const below = 62 * this.sy + groupH + 8;   // 발밑에 두는 후보
+      const tries = [{ dx: 0, dy: 0 }];
+      for (let k = 1; k <= 4; k++) tries.push({ dx: 0, dy: -k * 8 });
+      for (let k = 1; k <= 3; k++) {
+        tries.push({ dx: 26 * k, dy: -6 }, { dx: -26 * k, dy: -6 });
       }
-      if (bubbleY < 2) {
-        const delta = 2 - bubbleY;
-        pillY += delta; bubbleY += delta;
+      tries.push({ dx: 0, dy: below }, { dx: 26, dy: below }, { dx: -26, dy: below });
+      for (let k = 1; k <= 2; k++) {
+        tries.push({ dx: 14 * k, dy: -22 * k }, { dx: -14 * k, dy: -22 * k });
       }
-      placed.push({
-        x: bubble ? p.x - bubble.w / 2 : left,
-        y: bubbleY,
-        w: Math.max(pillW, bubble ? bubble.w : 0),
-        h: (pillY + pillH) - bubbleY
-      });
+      let box = null;
+      for (const t of tries) {
+        const cand = { x: p.x - groupW / 2 + t.dx, y: baseTop + t.dy, w: groupW, h: groupH };
+        if (cand.x < CVPAD || cand.x + cand.w > this.cssW - CVPAD) continue;
+        if (cand.y < CVPAD) continue;
+        if (placed.some(q => overlaps(cand, q))) continue;
+        box = cand;
+        break;
+      }
+      if (!box) {
+        box = { x: p.x - groupW / 2, y: Math.max(CVPAD, baseTop), w: groupW, h: groupH };
+      }
+      placed.push(box);
 
-      // 말풍선 그리기
+      const pillX = box.x + (groupW - pillW) / 2;
+      const pillY = box.y + (groupH - pillH);
+      const bx = box.x + (groupW - (bubble ? bubble.w : 0)) / 2;
+      const by = box.y;
+
+      // 말풍선
       if (bubble) {
-        const bx = p.x - bubble.w / 2;
         ctx.save();
         ctx.shadowColor = "rgba(74,58,42,.16)";
         ctx.shadowBlur = 6;
         ctx.shadowOffsetY = 2;
-        fillRR(ctx, bx, bubbleY, bubble.w, bubble.h, 8, "rgba(255,254,250,.97)", "rgba(190,172,148,.55)", 1);
+        fillRR(ctx, bx, by, bubble.w, bubble.h, 8, "rgba(255,254,250,.97)", "rgba(190,172,148,.55)", 1);
         ctx.restore();
-        // 꼬리
+        // 꼬리 (캐릭터 쪽을 향해)
+        const tailX = Math.max(bx + 9, Math.min(bx + bubble.w - 9, p.x));
         ctx.beginPath();
-        ctx.moveTo(p.x - 4, bubbleY + bubble.h - 0.5);
-        ctx.lineTo(p.x, bubbleY + bubble.h + 5);
-        ctx.lineTo(p.x + 4, bubbleY + bubble.h - 0.5);
+        ctx.moveTo(tailX - 4.5, by + bubble.h - 0.5);
+        ctx.lineTo(tailX, by + bubble.h + 5.5);
+        ctx.lineTo(tailX + 4.5, by + bubble.h - 0.5);
         ctx.closePath();
         ctx.fillStyle = "rgba(255,254,250,.97)";
         ctx.fill();
@@ -1730,8 +1738,8 @@ export class OfficeMap {
         ctx.fillStyle = "#5c564f";
         ctx.font = "600 10.5px 'Noto Sans KR',system-ui,sans-serif";
         bubble.lines.forEach((line, i) => {
-          ctx.fillText(line + (bubble.trimmed && i === 1 ? "…" : ""),
-            bx + 7, bubbleY + 8 + i * 13);
+          ctx.fillText(line + (bubble.trimmed && i === bubble.lines.length - 1 ? "…" : ""),
+            bx + 7, by + 8 + i * 13);
         });
       }
 
@@ -1742,24 +1750,38 @@ export class OfficeMap {
         ctx.shadowColor = "rgba(228,87,46,.4)";
         ctx.shadowBlur = 8;
       }
-      fillRR(ctx, left, pillY, pillW, pillH, 9,
+      fillRR(ctx, pillX, pillY, pillW, pillH, 9,
         a.id === myId ? "rgba(255,246,240,.98)" : "rgba(255,253,248,.94)",
         a.id === myId ? "rgba(228,87,46,.65)" : "rgba(180,162,138,.45)", 1);
       ctx.restore();
-      // 상태 점
       ctx.beginPath();
-      ctx.arc(left + 9, pillY + pillH / 2, offline ? 2.6 : 3, 0, Math.PI * 2);
+      ctx.arc(pillX + 9, pillY + pillH / 2, offline ? 2.6 : 3, 0, Math.PI * 2);
       ctx.fillStyle = stColor;
       ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,.9)";
       ctx.lineWidth = 1;
       ctx.stroke();
-      // 이모지 + 이름
       ctx.fillStyle = "#3b3630";
-      ctx.fillText(emoji, left + 15, pillY + pillH / 2 + 0.5);
+      ctx.font = "700 11px 'Noto Sans KR',system-ui,sans-serif";
+      ctx.fillText(emoji, pillX + 15, pillY + pillH / 2 + 0.5);
       ctx.font = "800 11px 'Noto Sans KR',system-ui,sans-serif";
       ctx.fillStyle = offline ? "#8b8b8b" : "#2c2a28";
-      ctx.fillText(name, left + 15 + emojiW, pillY + pillH / 2 + 0.5);
+      ctx.fillText(name, pillX + 15 + emojiW, pillY + pillH / 2 + 0.5);
+
+      // 이름표가 캐릭터에서 멀어졌으면 가는 선으로 이어 준다
+      const gapX = Math.abs(pillX + pillW / 2 - p.x);
+      const gapY = Math.abs(headTop - (pillY + pillH));
+      if (gapX > 12 || gapY > 10) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(150,130,104,.42)";
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(pillX + pillW / 2, pillY + pillH + 1);
+        ctx.lineTo(p.x, headTop + 1);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
   }
 
