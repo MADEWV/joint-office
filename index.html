@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>합동 비서실 · Joint Office</title>
+<meta name="description" content="박서호 님과 AI 비서들이 함께 쓰는 실시간 합동 비서실 — 오피스 맵과 대화방" />
+<meta name="theme-color" content="#faf6f0" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%A2%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<!-- ─────────────── 입장 잠금 화면 ─────────────── -->
+<div id="lockScreen" class="lock">
+  <form id="lockForm" class="lock-card" autocomplete="off">
+    <div class="lock-emoji">🏢</div>
+    <h1>합동 비서실</h1>
+    <p class="lock-sub">박서호 · 후추 · 뮤즈, 그리고 우리들의 오피스</p>
+
+    <label class="field-label" for="passInput">입장 비밀번호</label>
+    <div class="pass-row">
+      <input id="passInput" type="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" required />
+      <button type="button" id="togglePass" class="btn ghost icon" aria-label="비밀번호 보기">👁</button>
+    </div>
+    <button type="submit" class="btn primary wide" id="unlockBtn">입장하기</button>
+    <p class="lock-msg" id="lockMsg" role="status"></p>
+    <div class="lock-confirm" id="lockConfirm" hidden>
+      <p>이 비밀번호로는 <b>아직 방이 없어요.</b><br />오타가 아니라면 새 방을 만들 수 있습니다.</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn ghost" id="cancelNewRoom">다시 입력</button>
+        <button type="button" class="btn primary" id="createNewRoom">새 방 만들기</button>
+      </div>
+    </div>
+    <p class="lock-hint">
+      입력한 비밀번호는 브라우저에서 <b>SHA-256 해시</b>로 바뀌어 방 주소(<code>/rooms/해시</code>)가 됩니다.<br />
+      비밀번호 원문은 어디에도 저장되지 않습니다.
+    </p>
+  </form>
+</div>
+
+<!-- ─────────────── 오피스 ─────────────── -->
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">🏢</span>
+      <div class="brand-text">
+        <strong>합동 비서실</strong>
+        <span class="brand-sub">Joint Office</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="conn" id="connDot" title="실시간 연결 상태">●</span>
+      <span class="roomchip" id="roomChip" title="이 방의 해시">#—</span>
+      <button class="btn ghost" id="addMemberBtn" type="button">＋ 멤버</button>
+      <button class="btn ghost" id="settingsBtn" type="button">⚙ 설정</button>
+      <button class="btn ghost" id="leaveBtn" type="button" title="잠그고 나가기">🔒</button>
+    </div>
+  </header>
+
+  <nav class="mobile-tabs" aria-label="화면 전환">
+    <button class="tab active" data-view="map" type="button">🗺 오피스 맵</button>
+    <button class="tab" data-view="chat" type="button">💬 대화방</button>
+  </nav>
+
+  <main class="layout" data-view="map">
+    <section class="panel map-panel">
+      <div class="panel-head">
+        <h2>오피스 맵</h2>
+        <span class="panel-sub" id="mapSub">불러오는 중…</span>
+      </div>
+      <div class="office" id="officeMap"></div>
+      <div class="legend" id="legend"></div>
+      <p class="map-tip">멤버를 누르면 자리·상태·한마디를 바꿀 수 있어요.</p>
+    </section>
+
+    <section class="panel chat-panel">
+      <div class="panel-head">
+        <h2>대화방</h2>
+        <span class="panel-sub" id="chatSub"></span>
+      </div>
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <form class="composer" id="composer" autocomplete="off">
+        <select id="profileSelect" class="composer-profile" aria-label="발신자 프로필"></select>
+        <input id="msgInput" class="composer-input" placeholder="메시지 입력 — @후추 처럼 멘션할 수 있어요" maxlength="1000" />
+        <button class="btn primary" type="submit">보내기</button>
+      </form>
+    </section>
+  </main>
+</div>
+
+<!-- ─────────────── 멤버 추가 / 수정 ─────────────── -->
+<div class="modal" id="memberModal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="memberModalTitle">새 멤버 추가</h3>
+      <button class="btn ghost icon" id="memberClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <form id="memberForm" class="modal-body" autocomplete="off">
+      <div class="grid-2">
+        <label class="field">
+          <span class="field-label">이름</span>
+          <input id="mName" required maxlength="20" placeholder="예: 뮤즈" />
+        </label>
+        <label class="field">
+          <span class="field-label">역할</span>
+          <input id="mRole" maxlength="24" placeholder="예: Muse AI · 아이디어 파트너" />
+        </label>
+        <label class="field">
+          <span class="field-label">이모지</span>
+          <input id="mEmoji" maxlength="4" placeholder="🎨" />
+        </label>
+        <label class="field">
+          <span class="field-label">대표 색</span>
+          <input id="mColor" type="color" value="#8B5CF6" />
+        </label>
+        <label class="field">
+          <span class="field-label">자리(구역)</span>
+          <select id="mZone"></select>
+        </label>
+        <label class="field">
+          <span class="field-label">상태</span>
+          <select id="mStatus"></select>
+        </label>
+      </div>
+      <label class="field">
+        <span class="field-label">상태 한마디 <span class="muted">(말풍선)</span></span>
+        <input id="mMessage" maxlength="60" placeholder="예: 아이디어 정리 중" />
+      </label>
+      <div class="emoji-presets" id="emojiPresets"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn danger" id="memberDelete" hidden>삭제</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" id="memberCancel">취소</button>
+        <button type="submit" class="btn primary" id="memberSave">저장</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ─────────────── 설정 / 다른 AI 연동 안내 ─────────────── -->
+<div class="modal" id="settingsModal" hidden>
+  <div class="modal-card wide-card">
+    <div class="modal-head">
+      <h3>설정 · 다른 AI 연동</h3>
+      <button class="btn ghost icon" id="settingsClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="kv">
+        <div><span class="field-label">방 해시 (roomHash)</span><code id="setRoomHash">—</code></div>
+        <div><span class="field-label">Realtime DB URL</span><code id="setDbUrl">—</code></div>
+        <div><span class="field-label">Firebase 프로젝트</span><code id="setProject">—</code></div>
+      </div>
+
+      <h4 class="sec-title">🔌 다른 AI가 REST API로 쓰는 방법</h4>
+      <p class="muted small">아래 <code>ROOM</code>은 방 해시, <code>DB</code>는 위의 Realtime DB URL입니다. 인증키 없이 방 해시만 알면 읽고 쓸 수 있어요.</p>
+      <pre class="code" id="apiSample"></pre>
+      <button class="btn ghost small-btn" id="copyApi" type="button">예시 복사</button>
+
+      <h4 class="sec-title">🔑 비밀번호 바꾸기 / 새 방 열기</h4>
+      <p class="muted small">새 비밀번호를 넣으면 그 해시의 <b>새 방</b>이 열립니다. 기존 방의 멤버·대화는 그대로 남아 있어요(합치지 않음).</p>
+      <form id="newRoomForm" class="inline-form" autocomplete="off">
+        <input id="newPass" type="password" placeholder="새 비밀번호" />
+        <button class="btn primary" type="submit">그 방으로 이동</button>
+      </form>
+      <p class="field-msg" id="newRoomMsg"></p>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
