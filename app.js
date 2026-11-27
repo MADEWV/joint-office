@@ -62,6 +62,7 @@ const state = {
   unsubs: [],
   pendingMemberId: null
 };
+let mapSyncPending = false; // 캔버스 배치가 준비되기 전에 들어온 멤버를 나중에 그리기 위한 표시
 
 const $ = (id) => document.getElementById(id);
 
@@ -175,6 +176,11 @@ async function enterRoom(hash, keep = keepEnabled()) {
   unread = 0;
   $("lockMsg").textContent = "";
   $("lockConfirm").hidden = true;
+  // 구독을 걸기 전에 화면을 먼저 보여 준다 — 숨김 상태에서는 캔버스 크기가 0이라
+  // 첫 멤버 데이터가 맵 배치보다 먼저 도착할 수 있다.
+  $("lockScreen").hidden = true;
+  $("app").hidden = false;
+  officeMap.resize();
 
   state.unsubs.push(onValue(ref(db, `rooms/${hash}/members`), snap => {
     state.members = snap.val() || {};
@@ -205,6 +211,8 @@ async function enterRoom(hash, keep = keepEnabled()) {
 
   $("lockScreen").hidden = true;
   $("app").hidden = false;
+  officeMap.resize();
+  renderMap(); // 숨김 상태에서 도착한 멤버가 있어도 지금 배치로 다시 그린다
   renderSettings();
   renderProfiles();
   syncScrollToBottomAfterLayout();
@@ -251,7 +259,22 @@ window.officeMap2d = officeMap;
 window.getMemberPositions = () => officeMap.getPositions();
 window.getMapInfo = () => officeMap.layoutInfo;
 
+// 화면 크기가 잡히면(숨김→표시, 모바일 탭 전환) 미뤄 둔 멤버 그리기를 마저 한다
+if (window.ResizeObserver) {
+  new ResizeObserver(() => {
+    officeMap.resize();
+    if (mapSyncPending) renderMap();
+  }).observe($("officeWrap"));
+}
+
 function renderMap() {
+  if (!officeMap.layoutName) {
+    officeMap.resize();
+    // 아직 캔버스 크기를 잴 수 없는 때(숨김·탭 전환 직후)는 멤버만 기억해 두고,
+    // 배치가 잡힐 때 ResizeObserver가 다시 부른다.
+    if (!officeMap.layoutName) { mapSyncPending = true; return; }
+  }
+  mapSyncPending = false;
   officeMap.sync(state.members);
   $("legend").innerHTML = STATUSES.map(s =>
     `<span><i class="status-dot" style="background:${s.color}"></i>${s.label}</span>`).join("");
