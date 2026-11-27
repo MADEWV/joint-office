@@ -133,7 +133,7 @@ async function ensureSeed(hash) {
   return true;
 }
 
-async function openRoom(passcode, create = false) {
+async function openRoom(passcode, create = false, keep = keepEnabled()) {
   const hash = await sha256Hex(String(passcode).trim());
   const probe = await get(ref(db, `rooms/${hash}/members`));
   if (!probe.exists()) {
@@ -141,7 +141,30 @@ async function openRoom(passcode, create = false) {
     if (!create) return { needsCreate: true, hash };
     await ensureSeed(hash);
   }
+  return enterRoom(hash, keep);
+}
 
+/* ── 5-1. 이 기기에서 로그인 유지(자동 입장) ─────────────────
+   비밀번호 원문은 절대 저장하지 않고, SHA-256 방 해시만 localStorage에 둔다. */
+const KEEP_KEY = "joint_office_room_hash";
+
+function keepEnabled() {
+  const box = $("keepLogin");
+  return box ? !!box.checked : false;
+}
+function rememberRoom(hash, keep = keepEnabled()) {
+  try {
+    if (keep) localStorage.setItem(KEEP_KEY, hash);
+    else localStorage.removeItem(KEEP_KEY);
+  } catch (err) {
+    console.warn("로그인 유지 정보를 저장하지 못했어요.", err);
+  }
+}
+function forgetRoom() {
+  try { localStorage.removeItem(KEEP_KEY); } catch { /* 저장소를 쓸 수 없는 브라우저 */ }
+}
+
+async function enterRoom(hash, keep = keepEnabled()) {
   state.unsubs.forEach(fn => fn());
   state.unsubs = [];
   state.hash = hash;
@@ -150,6 +173,8 @@ async function openRoom(passcode, create = false) {
   stickToBottom = true;
   lastNewestKey = null;
   unread = 0;
+  $("lockMsg").textContent = "";
+  $("lockConfirm").hidden = true;
 
   state.unsubs.push(onValue(ref(db, `rooms/${hash}/members`), snap => {
     state.members = snap.val() || {};
@@ -176,6 +201,7 @@ async function openRoom(passcode, create = false) {
   state.myId = saved && state.members[saved] ? saved : (state.members.seoho ? "seoho" : Object.keys(state.members)[0] || null);
   localStorage.setItem("jointOffice.myId." + hash, state.myId || "");
   localStorage.setItem("jointOffice.lastHash", hash);
+  rememberRoom(hash, keep); // 켜져 있으면 방 해시만, 꺼져 있으면 저장된 해시 삭제
 
   $("lockScreen").hidden = true;
   $("app").hidden = false;
@@ -191,6 +217,26 @@ async function openRoom(passcode, create = false) {
   }
   setTimeout(() => $("msgInput")?.focus(), 250);
   return { ok: true, hash };
+}
+
+/* 저장된 방 해시로 비밀번호 없이 바로 들어간다. 데이터가 없거나 오류면 조용히 잠금 화면으로. */
+async function tryAutoEnter() {
+  let hash = null;
+  try { hash = localStorage.getItem(KEEP_KEY); } catch { return false; }
+  if (!hash) return false;
+  if (!/^[0-9a-f]{64}$/.test(hash)) { forgetRoom(); return false; } // 형식이 깨진 값은 지운다
+  const msg = $("lockMsg");
+  msg.textContent = "이 기기에 저장된 방으로 자동 입장 중…";
+  try {
+    const probe = await get(ref(db, `rooms/${hash}/members`));
+    if (!probe.exists()) { forgetRoom(); msg.textContent = ""; return false; }
+    await enterRoom(hash, true);
+    return true;
+  } catch (err) {
+    console.warn("자동 입장에 실패해 잠금 화면으로 돌아갑니다.", err);
+    msg.textContent = "";
+    return false;
+  }
 }
 
 /* ── 6. 렌더: 오피스 맵 (2D 캔버스) ───────────────────────── */
@@ -593,10 +639,12 @@ function wireEvents() {
     $("newRoomMsg").textContent = "";
   });
 
-  // 나가기(잠금)
+  // 나가기(잠금) — 저장된 자동 입장 정보도 함께 삭제
   $("leaveBtn").addEventListener("click", () => {
     state.unsubs.forEach(fn => fn());
     state.unsubs = [];
+    forgetRoom();
+    state.hash = null;
     $("app").hidden = true;
     $("lockScreen").hidden = false;
     $("passInput").value = "";
@@ -635,4 +683,8 @@ function wireEvents() {
 /* ── 12. 시작 ─────────────────────────────────────────────── */
 fillSelects();
 wireEvents();
-$("passInput").focus();
+
+(async function boot() {
+  const entered = await tryAutoEnter();
+  if (!entered) $("passInput").focus();
+})();

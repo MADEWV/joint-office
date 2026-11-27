@@ -26,6 +26,10 @@
       <input id="passInput" type="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" required />
       <button type="button" id="togglePass" class="btn ghost icon" aria-label="비밀번호 보기">👁</button>
     </div>
+    <label class="keep-row" for="keepLogin">
+      <input type="checkbox" id="keepLogin" checked />
+      <span>이 기기에서 로그인 유지</span>
+    </label>
     <button type="submit" class="btn primary wide" id="unlockBtn">입장하기</button>
     <p class="lock-msg" id="lockMsg" role="status"></p>
     <div class="lock-confirm" id="lockConfirm" hidden>
@@ -37,7 +41,8 @@
     </div>
     <p class="lock-hint">
       입력한 비밀번호는 브라우저에서 <b>SHA-256 해시</b>로 바뀌어 방 주소(<code>/rooms/해시</code>)가 됩니다.<br />
-      비밀번호 원문은 어디에도 저장되지 않습니다.
+      비밀번호 원문은 어디에도 저장되지 않습니다.<br />
+      <b>로그인 유지</b>를 켜면 비밀번호 대신 방 해시만 이 브라우저에 저장되고, 상단 <b>🔒</b> 버튼을 누르면 바로 지워집니다.
     </p>
   </form>
 </div>

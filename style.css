@@ -86,6 +86,13 @@ input[type="color"]{padding:.2rem;height:2.6rem;cursor:pointer}
 .lock-card .field-label{text-align:left}
 .pass-row{display:flex;gap:.4rem}
 .pass-row input{flex:1}
+.keep-row{display:flex;align-items:center;gap:.5rem;margin:.55rem 0 .75rem;font-size:.83rem;color:var(--ink-soft);text-align:left;cursor:pointer;user-select:none}
+.keep-row input[type="checkbox"]{
+  width:1.1rem;height:1.1rem;padding:0;margin:0;flex:0 0 auto;
+  border-radius:5px;accent-color:var(--accent);cursor:pointer;
+}
+.keep-row input[type="checkbox"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.keep-row span{font-weight:700}
 .lock-msg{min-height:1.2rem;font-size:.83rem;color:#c0392b;margin:.55rem 0 0}
 .lock-hint{font-size:.72rem;line-height:1.6;color:#9a938b;margin:1rem 0 0;text-align:left;border-top:1px dashed var(--line);padding-top:.85rem}
 .lock-confirm{margin-top:.8rem;background:#fdf6ec;border:1px solid #f0dfc5;border-radius:12px;padding:.7rem .8rem;text-align:left}
