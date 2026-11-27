@@ -209,9 +209,6 @@ async function enterRoom(hash, keep = keepEnabled()) {
   localStorage.setItem("jointOffice.lastHash", hash);
   rememberRoom(hash, keep); // 켜져 있으면 방 해시만, 꺼져 있으면 저장된 해시 삭제
 
-  $("lockScreen").hidden = true;
-  $("app").hidden = false;
-  officeMap.resize();
   renderMap(); // 숨김 상태에서 도착한 멤버가 있어도 지금 배치로 다시 그린다
   renderSettings();
   renderProfiles();
