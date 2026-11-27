@@ -1688,12 +1688,16 @@ export class OfficeMap {
 
       // 겹치지 않는 자리 찾기: 위로 → 살짝 좌우 → 더 위로
       const below = 62 * this.sy + groupH + 8;   // 발밑에 두는 후보
-      const tries = [{ dx: 0, dy: 0 }];
+      const tries = [];
+      const belowTries = [{ dx: 0, dy: below }, { dx: 26, dy: below }, { dx: -26, dy: below }];
+      // 위쪽에 자리가 없으면(맵 맨 위) 캐릭터 아래에 붙인다
+      if (baseTop < 6) tries.push(...belowTries);
+      tries.push({ dx: 0, dy: 0 });
       for (let k = 1; k <= 4; k++) tries.push({ dx: 0, dy: -k * 8 });
       for (let k = 1; k <= 3; k++) {
         tries.push({ dx: 26 * k, dy: -6 }, { dx: -26 * k, dy: -6 });
       }
-      tries.push({ dx: 0, dy: below }, { dx: 26, dy: below }, { dx: -26, dy: below });
+      if (baseTop >= 6) tries.push(...belowTries);
       for (let k = 1; k <= 2; k++) {
         tries.push({ dx: 14 * k, dy: -22 * k }, { dx: -14 * k, dy: -22 * k });
       }
@@ -1707,7 +1711,8 @@ export class OfficeMap {
         break;
       }
       if (!box) {
-        box = { x: p.x - groupW / 2, y: Math.max(CVPAD, baseTop), w: groupW, h: groupH };
+        const y = baseTop < 6 ? p.y + 5 : Math.max(CVPAD, baseTop);
+        box = { x: p.x - groupW / 2, y, w: groupW, h: groupH };
       }
       placed.push(box);
 
@@ -1771,8 +1776,8 @@ export class OfficeMap {
 
       // 이름표가 캐릭터에서 멀어졌으면 가는 선으로 이어 준다
       const gapX = Math.abs(pillX + pillW / 2 - p.x);
-      const gapY = Math.abs(headTop - (pillY + pillH));
-      if (gapX > 12 || gapY > 10) {
+      const aboveGap = headTop - (pillY + pillH);
+      if (aboveGap > 10 || (gapX > 12 && pillY < p.y - 4)) {
         ctx.save();
         ctx.strokeStyle = "rgba(150,130,104,.42)";
         ctx.lineWidth = 1.2;
