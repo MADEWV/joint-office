@@ -1099,6 +1099,7 @@ export class OfficeMap {
 
     if (a.status === "meeting" || a.zone === "meeting") {
       if (!a.seated) { this.goTo(a, this.pickSeat(a, "meeting"), true); a.nextThink = now + 1200; }
+      else if (Math.random() < 0.12) this.strollNear(a, "meeting");   // 화이트보드 앞으로 잠깐
       return;
     }
 
