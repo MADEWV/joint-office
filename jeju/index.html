@@ -59,7 +59,9 @@
   }
   .day-date{font-size:13px;color:var(--ink-soft);font-weight:600;}
   .day-title{margin:0 0 5px;font-size:21px;letter-spacing:-.025em;font-weight:800;}
-  .day-sum{margin:0 0 15px;font-size:13.5px;color:var(--ink-soft);}
+  .day-sum{margin:0 0 8px;font-size:13.5px;color:var(--ink-soft);}
+  .stat{margin:0 0 15px;font-size:11.5px;color:#7b878c;font-weight:600;}
+  .stat span{margin-right:10px;}
 
   .map{
     height:272px;border-radius:18px;overflow:hidden;border:1px solid var(--line);
@@ -148,9 +150,10 @@
     <div class="day-head"><span class="day-num">DAY 1</span><span class="day-date">12월 6일 (일)</span></div>
     <h2 class="day-title">공항 → 애월 → 서귀포 → 중문 → 대정</h2>
     <p class="day-sum">애월에서 아침 · 잠수함 · 폭포 · 귤 따기 · 커피 오마카세 · 흑돼지</p>
+    <p class="stat"><span>운전 3시간 06분</span><span>주행 약 105km</span><span>7개 지점</span></p>
 
     <div class="map" id="map1"></div>
-    <p class="map-hint">번호를 누르면 장소 설명이 뜹니다. 실제 도로 경로 · 이동 시간은 티맵 예상 기준.</p>
+    <p class="map-hint">번호를 누르면 확대되며 장소 설명이 뜹니다 · 3~6번은 서귀포 쪽에 모여 있어요.</p>
 
     <ul class="tl">
       <li>
@@ -224,6 +227,7 @@
     <div class="day-head"><span class="day-num">DAY 2</span><span class="day-date">12월 7일 (월)</span></div>
     <h2 class="day-title">대정 → 안덕 → 제주시 → 공항</h2>
     <p class="day-sum">11시 체크아웃해도 여유 · 박물관 → 점심 → 서커스 → 수퍼마켙 → 공항</p>
+    <p class="stat"><span>운전 1시간 40분</span><span>주행 약 62km</span><span>6개 지점</span></p>
 
     <div class="map" id="map2"></div>
     <p class="map-hint">오후에 딱 하나만 맞추면 됩니다 — 14:30 서커스 공연.</p>
@@ -350,8 +354,9 @@
     stops.forEach(s=>{
       const cls = 'pin' + (s.food ? ' food' : '') + (s.end ? ' end' : '');
       const icon = L.divIcon({className:'', html:'<div class="'+cls+'">'+s.n+'</div>', iconSize:[24,24], iconAnchor:[12,12]});
-      L.marker([s.lat,s.lng], {icon, title:s.name}).addTo(map)
+      const mk = L.marker([s.lat,s.lng], {icon, title:s.name, zIndexOffset:(stops.length-s.n)*10}).addTo(map)
         .bindPopup('<b>'+s.n+'. '+s.name+'</b><br>'+s.note);
+      mk.on('click', ()=>{ map.flyTo([s.lat,s.lng], Math.max(map.getZoom(), 13), {duration:.6}); });
     });
 
     map.fitBounds(L.latLngBounds(route), {padding:[30,30]});
