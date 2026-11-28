@@ -444,6 +444,7 @@
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmt = (s) => esc(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "$1");
   const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 
   async function sha256(text){
@@ -468,7 +469,7 @@
   async function loadTalk(){
     const list = $("talkList");
     try{
-      const url = `${BASE}/rooms/${ROOM}/messages.json?orderBy=%22ts%22&limitToLast=14`;
+      const url = `${BASE}/rooms/${ROOM}/messages.json?orderBy=%22ts%22&limitToLast=10`;
       const res = await fetch(url, {cache:"no-store"});
       const data = await res.json() || {};
       const items = Object.values(data).filter((m) => m && typeof m.ts === "number" && m.type !== "system")
@@ -476,7 +477,7 @@
       list.innerHTML = items.map((m) =>
         `<li class="${m.authorId === "guest" ? "mine" : ""}">` +
           `<span class="who">${esc(m.authorName || "비서실")}<span class="t">${timeLabel(m.ts)}</span></span>` +
-          `<div class="txt">${esc(m.text)}</div>` +
+          `<div class="txt">${fmt(m.text)}</div>` +
         `</li>`).join("") || `<li><div class="txt">아직 대화가 없어요. 첫 의견을 남겨보세요!</div></li>`;
       list.scrollTop = list.scrollHeight;
     }catch(e){
