@@ -134,6 +134,38 @@
   .leaflet-popup-content b{font-size:13px;}
   .leaflet-popup-content .popay{display:block;margin-top:4px;color:var(--won);font-weight:700;}
   .leaflet-container{background:#e9eef0;font-family:inherit;}
+
+  /* ===== 의견 남기기 (비서실 연동) ===== */
+  .talk{
+    margin-top:26px;background:#fff;border:1px solid var(--line);border-radius:18px;
+    padding:18px 16px;box-shadow:0 4px 14px rgba(31,42,48,.05);
+  }
+  .talk h2{margin:0 0 4px;font-size:17px;font-weight:800;letter-spacing:-.015em;}
+  .talk .sub{display:block;font-size:12px;color:var(--ink-soft);font-weight:600;margin-bottom:12px;}
+  .gate input{
+    width:110px;font-size:18px;letter-spacing:.3em;text-align:center;font-weight:800;
+    padding:9px 8px;border:1px solid var(--line);border-radius:10px;background:#fdfbf7;
+    font-variant-numeric:tabular-nums;
+  }
+  .gate{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .talk button{
+    border:0;border-radius:10px;background:var(--sea);color:#fff;font-weight:800;font-size:13px;
+    padding:10px 15px;cursor:pointer;font-family:inherit;
+  }
+  .talk button:disabled{opacity:.55;}
+  .gate-err{margin:8px 0 0;font-size:12px;color:#b0392a;font-weight:700;}
+  .talklist{list-style:none;margin:0 0 12px;padding:0;max-height:260px;overflow-y:auto;}
+  .talklist li{padding:8px 10px;border-radius:10px;background:#faf7f1;margin-bottom:6px;}
+  .talklist li.mine{background:#eef7fa;}
+  .talklist .who{font-size:11px;font-weight:800;color:var(--ink-soft);}
+  .talklist .txt{font-size:13px;color:#2b3a41;white-space:pre-wrap;word-break:break-word;}
+  .talklist .t{font-size:10.5px;color:#9aa3a6;margin-left:5px;font-weight:600;}
+  .talk textarea{
+    width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;
+    font-family:inherit;line-height:1.5;resize:vertical;background:#fdfbf7;color:var(--ink);
+  }
+  .talkrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;}
+  .talkrow .state{font-size:12px;color:var(--ink-soft);font-weight:600;}
 </style>
 </head>
 <body>
@@ -320,6 +352,26 @@
     </ul>
   </section>
 
+  <section class="talk" id="talk">
+    <h2>💬 여자친구 의견</h2>
+    <span class="sub">여기 남긴 글이 합동 비서실 대화방으로 바로 전달돼요 · 답장도 여기서 볼 수 있어요</span>
+
+    <div class="gate" id="gate">
+      <input id="code" inputmode="numeric" maxlength="4" placeholder="0000" aria-label="확인 코드 4자리" />
+      <button id="gateBtn" type="button">열기</button>
+      <p class="gate-err" id="gateErr" hidden>코드가 맞지 않아요.</p>
+    </div>
+
+    <div id="talkBody" hidden>
+      <ul class="talklist" id="talkList"></ul>
+      <textarea id="talkText" rows="3" maxlength="500" placeholder="예) 주상절리 대신 카페 가고 싶어요 / 2일차 점심은 해산물로"></textarea>
+      <div class="talkrow">
+        <span class="state" id="talkState"></span>
+        <button id="talkSend" type="button">비서실로 보내기</button>
+      </div>
+    </div>
+  </section>
+
   <footer>
     이동 시간은 TMAP 예측 교통 기준이라 당일 교통에 따라 조금 달라질 수 있어요.<br/>
     12월 제주는 17:20쯤 해가 져요 · 감귤밭과 주상절리대는 해 지기 전에.
@@ -381,6 +433,119 @@
 
   draw('map1', STOPS.day1, ROUTE.day1);
   draw('map2', STOPS.day2, ROUTE.day2);
+</script>
+<script>
+  // ===== 여자친구 의견 → 합동 비서실 대화방 =====
+  const ROOM = "f27019b5e2cc098033815e77e8a689d1c9f70453d7cb926ed668582e1c48a27f";
+  const BASE = "https://seoho-ai-office-default-rtdb.asia-southeast1.firebasedatabase.app";
+  const CODE_HASH = "baa8a6ecbabbd5ef02222983b23a4fbd1d794cca68c767e07d67af2d9f46e737";
+  const STORE_KEY = "jeju_talk_ok";
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  async function sha256(text){
+    if (!(window.crypto && crypto.subtle)) return null;
+    return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
+  }
+
+  function unlocked(){ return sessionStorage.getItem(STORE_KEY) === "1"; }
+
+  async function tryUnlock(code){
+    const h = await sha256(code);
+    if (h && h === CODE_HASH){ sessionStorage.setItem(STORE_KEY, "1"); return true; }
+    return false;
+  }
+
+  function timeLabel(ts){
+    const d = new Date(Number(ts) || Date.now());
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  async function loadTalk(){
+    const list = $("talkList");
+    try{
+      const url = `${BASE}/rooms/${ROOM}/messages.json?orderBy=%22ts%22&limitToLast=14`;
+      const res = await fetch(url, {cache:"no-store"});
+      const data = await res.json() || {};
+      const items = Object.values(data).filter((m) => m && typeof m.ts === "number" && m.type !== "system")
+        .sort((a,b) => a.ts - b.ts);
+      list.innerHTML = items.map((m) =>
+        `<li class="${m.authorId === "guest" ? "mine" : ""}">` +
+          `<span class="who">${esc(m.authorName || "비서실")}<span class="t">${timeLabel(m.ts)}</span></span>` +
+          `<div class="txt">${esc(m.text)}</div>` +
+        `</li>`).join("") || `<li><div class="txt">아직 대화가 없어요. 첫 의견을 남겨보세요!</div></li>`;
+      list.scrollTop = list.scrollHeight;
+    }catch(e){
+      list.innerHTML = `<li><div class="txt">대화를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</div></li>`;
+    }
+  }
+
+  function showBody(){
+    $("gate").hidden = true;
+    $("talkBody").hidden = false;
+    loadTalk();
+  }
+
+  async function sendTalk(){
+    const box = $("talkText");
+    const text = box.value.trim();
+    if (!text) return;
+    const btn = $("talkSend");
+    btn.disabled = true;
+    $("talkState").textContent = "보내는 중…";
+    try{
+      const res = await fetch(`${BASE}/rooms/${ROOM}/messages.json`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          type: "chat", authorId: "guest", authorName: "여자친구",
+          emoji: "💗", color: "#d9664f", text, ts: Date.now()
+        })
+      });
+      if (!res.ok) throw new Error(res.status);
+      box.value = "";
+      $("talkState").textContent = "보냈어요! 비서실에서 보고 답 남길게요 🙌";
+      await loadTalk();
+    }catch(e){
+      $("talkState").textContent = "전송에 실패했어요. 잠시 뒤 다시 보내 주세요.";
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  (function initTalk(){
+    const codeInput = $("code");
+    if (!codeInput) return;
+
+    const fromUrl = new URLSearchParams(location.search).get("k");
+    if (unlocked()) showBody();
+    else if (fromUrl && /^\d{4}$/.test(fromUrl)) tryUnlock(fromUrl).then((ok) => { if (ok) showBody(); });
+
+    $("gateBtn").addEventListener("click", async () => {
+      const code = codeInput.value.replace(/\D/g, "");
+      if (code.length !== 4){ $("gateErr").hidden = false; return; }
+      $("gateBtn").disabled = true;
+      const ok = await tryUnlock(code);
+      $("gateBtn").disabled = false;
+      if (ok){ $("gateErr").hidden = true; showBody(); }
+      else { $("gateErr").hidden = false; codeInput.value = ""; }
+    });
+    codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") $("gateBtn").click(); });
+
+    $("talkSend").addEventListener("click", sendTalk);
+    $("talkText").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendTalk();
+    });
+
+    // 열려 있는 동안만 가볍게 새 답장 확인
+    setInterval(() => {
+      if (!unlocked() || document.hidden) return;
+      loadTalk();
+    }, 25000);
+  })();
 </script>
 </body>
 </html>
