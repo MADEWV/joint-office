@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>제주 1박 2일 · 12.06 – 12.07</title>
+<meta name="description" content="12월 6일~7일 제주 1박 2일 일정 — 동선 지도, 이동시간, 관람시간 정리" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root{
+    --sea:#0e7490;
+    --sea-deep:#0b4f5f;
+    --coral:#e26d5c;
+    --sand:#faf6ef;
+    --card:#ffffff;
+    --ink:#1f2a30;
+    --ink-soft:#5b6b73;
+    --line:#e7e1d6;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--sand);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:660px;margin:0 auto;padding:0 16px 64px;}
+
+  /* header */
+  header{
+    background:linear-gradient(160deg,#0e7490 0%,#12616f 55%,#124b57 100%);
+    color:#fff;
+    padding:34px 20px 26px;
+    border-radius:0 0 26px 26px;
+    text-align:center;
+    box-shadow:0 8px 24px rgba(11,79,95,.18);
+  }
+  header .kicker{
+    font-size:12px;letter-spacing:.22em;opacity:.8;margin:0 0 8px;text-transform:uppercase;
+  }
+  header h1{
+    margin:0;font-size:30px;line-height:1.2;letter-spacing:-.02em;font-weight:800;
+  }
+  header .sub{margin:8px 0 0;font-size:13.5px;opacity:.9;}
+  .flights{
+    display:flex;gap:8px;margin-top:18px;
+  }
+  .flight{
+    flex:1;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);
+    border-radius:14px;padding:10px 8px;text-align:left;
+  }
+  .flight .dir{font-size:11px;opacity:.85;letter-spacing:.04em;}
+  .flight .time{font-size:19px;font-weight:800;margin-top:2px;letter-spacing:-.01em;}
+  .flight .meta{font-size:11px;opacity:.85;margin-top:1px;}
+
+  /* day section */
+  .day{margin-top:30px;}
+  .day-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
+  .day-num{
+    font-size:12px;font-weight:800;letter-spacing:.14em;color:#fff;background:var(--sea);
+    padding:3px 9px;border-radius:999px;
+  }
+  .day-date{font-size:13px;color:var(--ink-soft);}
+  .day-title{margin:0 0 4px;font-size:21px;letter-spacing:-.02em;font-weight:800;}
+  .day-sum{margin:0 0 14px;font-size:13.5px;color:var(--ink-soft);}
+
+  /* map */
+  .map{
+    height:270px;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+    box-shadow:0 6px 18px rgba(31,42,48,.08);margin-bottom:8px;background:#e9eef0;
+  }
+  .map-hint{font-size:11.5px;color:var(--ink-soft);margin:0 2px 16px;}
+
+  /* timeline */
+  .tl{position:relative;margin:0;padding:0;list-style:none;}
+  .tl::before{
+    content:"";position:absolute;left:65px;top:10px;bottom:14px;width:2px;
+    background:linear-gradient(var(--line),var(--line));border-radius:2px;
+  }
+  .tl li{position:relative;display:flex;gap:0;padding:0 0 15px;}
+  .when{
+    width:66px;flex:0 0 66px;text-align:right;padding-right:16px;padding-top:9px;
+    font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;font-weight:700;
+  }
+  .dot{
+    position:absolute;left:59.5px;top:14px;width:13px;height:13px;border-radius:50%;
+    background:#fff;border:3px solid var(--sea);z-index:2;
+  }
+  .tl li.eat .dot{border-color:var(--coral);}
+  .box{
+    flex:1;margin-left:24px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:11px 13px;box-shadow:0 2px 6px rgba(31,42,48,.04);
+  }
+  .box h3{margin:0;font-size:15.5px;letter-spacing:-.01em;font-weight:800;}
+  .box p{margin:4px 0 0;font-size:12.5px;color:var(--ink-soft);}
+  .tag{
+    display:inline-block;font-size:11px;font-weight:700;padding:1.5px 7px;border-radius:6px;
+    margin-right:5px;background:#eaf5f7;color:var(--sea-deep);
+  }
+  .tag.move{background:#f0f0ec;color:#6b6f66;}
+  .tag.warn{background:#fdecea;color:#b03a2b;}
+  .tag.food{background:#fdf0ec;color:#b8543f;}
+
+  /* note card */
+  .notes{
+    margin-top:34px;background:#fff;border:1px solid var(--line);border-radius:18px;
+    padding:18px 16px;box-shadow:0 4px 14px rgba(31,42,48,.05);
+  }
+  .notes h2{margin:0 0 10px;font-size:17px;font-weight:800;letter-spacing:-.01em;}
+  .notes ul{margin:0;padding-left:18px;}
+  .notes li{font-size:13px;color:#39474d;margin-bottom:7px;}
+  .notes li b{color:var(--ink);}
+  footer{
+    text-align:center;font-size:11.5px;color:#9aa3a6;margin-top:34px;line-height:1.7;
+  }
+  /* leaflet tweaks */
+  .pin{
+    width:26px;height:26px;border-radius:50%;background:#fff;border:2.5px solid var(--sea);
+    color:var(--sea-deep);font-size:12px;font-weight:800;display:flex;align-items:center;
+    justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+  .pin.food{border-color:var(--coral);color:#b8543f;}
+  .leaflet-popup-content{font-family:inherit;font-size:12.5px;margin:8px 10px;}
+  .leaflet-popup-content b{font-size:13px;}
+  .leaflet-container{background:#e9eef0;}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="kicker">JEJU · 1 NIGHT 2 DAYS</p>
+  <h1>제주 1박 2일</h1>
+  <p class="sub">12월 6일(일) – 12월 7일(월) · 2명 · 렌터카</p>
+  <div class="flights">
+    <div class="flight">
+      <div class="dir">가는 편 · 12/06</div>
+      <div class="time">07:30</div>
+      <div class="meta">부산 → 제주 · BX8697</div>
+    </div>
+    <div class="flight">
+      <div class="dir">오는 편 · 12/07</div>
+      <div class="time">19:50</div>
+      <div class="meta">제주 → 부산 · BX8970</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= DAY 1 ================= -->
+  <section class="day">
+    <div class="day-head"><span class="day-num">DAY 1</span><span class="day-date">12월 6일 (일)</span></div>
+    <h2 class="day-title">공항 → 애월 → 서귀포 → 중문 → 대정</h2>
+    <p class="day-sum">면공장에서 아침, 잠수함 타고, 폭포 보고, 중문에서 귤 따고 커피 마시고, 흑돼지로 마무리</p>
+
+    <div class="map" id="map1"></div>
+    <p class="map-hint">지도를 움직이거나 번호를 눌러보세요. 아래 일정의 장소 순서와 같습니다.</p>
+
+    <ul class="tl">
+      <li>
+        <span class="when">07:30</span><span class="dot"></span>
+        <div class="box">
+          <h3>부산 출발 → 제주 도착</h3>
+          <p><span class="tag">비행 1시간</span>08:35 제주공항 도착 · 렌터카 인수에 30~40분</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">09:40</span><span class="dot"></span>
+        <div class="box">
+          <h3>면공장 <span style="font-weight:600;font-size:12.5px;color:#5b6b73">애월</span></h3>
+          <p><span class="tag move">공항에서 40분</span><span class="tag food">아침 겸 점심 40분</span>고기국수 · 투어패스 할인은 메뉴당 5,000원</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">11:00</span><span class="dot"></span>
+        <div class="box">
+          <h3>아르떼뮤지엄 제주</h3>
+          <p><span class="tag">바로 옆 · 도보 1분</span><span class="tag">관람 1시간</span>투어패스 있으면 1인 13,000원만 추가</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">12:00</span><span class="dot"></span>
+        <div class="box">
+          <h3>서귀포잠수함</h3>
+          <p><span class="tag move">이동 55분</span><span class="tag">승선 70분</span>13:20 출항 → 14:30 복귀 · <b>1일 전까지 예약 필수</b></p>
+        </div>
+      </li>
+      <li>
+        <span class="when">14:45</span><span class="dot"></span>
+        <div class="box">
+          <h3>천지연폭포</h3>
+          <p><span class="tag move">이동 10분</span><span class="tag">관람 45분</span>주차장에서 걸어서 10분 정도</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">15:35</span><span class="dot"></span>
+        <div class="box">
+          <h3>중문별장 · 감귤따기</h3>
+          <p><span class="tag move">이동 25분</span><span class="tag">체험 1시간</span>16:00 시작 → 17:00 마무리 · 일몰 전에 먼저</p>
+        </div>
+      </li>
+      <li class="eat">
+        <span class="when">17:30</span><span class="dot"></span>
+        <div class="box">
+          <h3>중문별장 · 커피 오마카세</h3>
+          <p><span class="tag">25분 · 예약제</span>정시 시작이라 10분 전 도착 · 1인 17,000원</p>
+        </div>
+      </li>
+      <li class="eat">
+        <span class="when">18:15</span><span class="dot"></span>
+        <div class="box">
+          <h3>까망돼지 중문점</h3>
+          <p><span class="tag move">이동 6분</span><span class="tag food">저녁 1시간 15분</span>흑돼지</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">20:30</span><span class="dot"></span>
+        <div class="box">
+          <h3>도구리 3083 체크인</h3>
+          <p><span class="tag move">이동 50분</span>대정읍 노을해안로 · 바다 앞 숙소</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ================= DAY 2 ================= -->
+  <section class="day">
+    <div class="day-head"><span class="day-num">DAY 2</span><span class="day-date">12월 7일 (월)</span></div>
+    <h2 class="day-title">대정 → 안덕 → 제주시 → 공항</h2>
+    <p class="day-sum">11시 체크아웃해도 여유 있습니다 · 박물관 → 점심 → 서커스 → 수퍼마켙 → 공항</p>
+
+    <div class="map" id="map2"></div>
+    <p class="map-hint">체크아웃이 11시라 아침은 느긋하게, 오후에는 14:30 공연 하나만 맞추면 됩니다.</p>
+
+    <ul class="tl">
+      <li>
+        <span class="when">09:00</span><span class="dot"></span>
+        <div class="box">
+          <h3>기상 · 아침 · 짐 정리</h3>
+          <p><span class="tag">2시간</span>10:50까지 짐을 차에 실어두면 편해요</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">11:00</span><span class="dot"></span>
+        <div class="box">
+          <h3>체크아웃 → 건강과 성 박물관</h3>
+          <p><span class="tag move">이동 35분</span>11:34 도착 · 12월은 18:00에 닫아요</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">11:40</span><span class="dot"></span>
+        <div class="box">
+          <h3>건강과 성 박물관</h3>
+          <p><span class="tag">관람 1시간</span>1인 15,000원 · 투어패스 미포함 · 19세 이상</p>
+        </div>
+      </li>
+      <li class="eat">
+        <span class="when">12:55</span><span class="dot"></span>
+        <div class="box">
+          <h3>점심 · 전원일기 동광점</h3>
+          <p><span class="tag move">이동 15분</span><span class="tag food">식사 45분</span>제주 향토음식 · 월요일 정상 영업</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">14:30</span><span class="dot"></span>
+        <div class="box">
+          <h3>제주아트서커스</h3>
+          <p><span class="tag move">이동 2분</span><span class="tag">공연 1시간</span><b>14:00까지 도착</b> · 시작 후 입장 불가</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">16:00</span><span class="dot"></span>
+        <div class="box">
+          <h3>노형수퍼마켙</h3>
+          <p><span class="tag move">이동 25분</span><span class="tag">관람 50분</span>투어패스로 무료 입장 · 18:00 입장 마감</p>
+        </div>
+      </li>
+      <li>
+        <span class="when">17:30</span><span class="dot"></span>
+        <div class="box">
+          <h3>공항 · 렌터카 반납</h3>
+          <p><span class="tag move">이동 25분</span>반납 후 셔틀로 터미널 이동 (10분)</p>
+        </div>
+      </li>
+      <li class="eat">
+        <span class="when">19:50</span><span class="dot"></span>
+        <div class="box">
+          <h3>제주 출발 → 부산</h3>
+          <p><span class="tag food">공항에서 저녁</span>19:20 탑승 · BX8970</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ================= NOTES ================= -->
+  <section class="notes">
+    <h2>가기 전에 챙길 것</h2>
+    <ul>
+      <li><b>서귀포잠수함</b> — 탑승 1일 전까지 예약 필수(064-732-6060). 당일은 전화만 가능하고, 12/6 비 예보가 있어 해상 기상도 함께 확인.</li>
+      <li><b>중문별장 커피 오마카세</b> — 네이버 예약제. 정시 시작 · 10분 전 도착 · 당일 시간 변경 불가.</li>
+      <li><b>감귤따기</b> — 실외 귤밭이라 비 오면 취소 가능(기상악화 100% 환불). 예약은 선결제·바로확정.</li>
+      <li><b>제주아트서커스</b> — 동절기 공연이 14:30 한 타임. 기상·인원에 따라 취소될 수 있어 당일 064-794-4444 확인.</li>
+      <li><b>제주투어패스</b> — 48시간권 23,900원/인. 면공장은 바코드에서 방문 시간 예약, 아르떼뮤지엄은 현장 추가금 13,000원.</li>
+      <li><b>둘째 날 11시 체크아웃</b> — 09:30 출발안보다 오히려 여유 있습니다. 유일한 고정 시간은 14:30 공연.</li>
+    </ul>
+  </section>
+
+  <footer>
+    이동 시간은 네이버·티맵 기준 예상 시간이라 당일 교통에 따라 조금 달라질 수 있어요.<br/>
+    12월 제주 일몰은 17:20쯤 · 해 지기 전에 감귤밭부터.
+  </footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const STOPS = {
+    day1: [
+      {n:1, name:"제주공항", lat:33.5068, lng:126.4927, note:"09:00 렌터카 인수"},
+      {n:2, name:"면공장 · 아르떼뮤지엄", lat:33.3965, lng:126.3446, note:"10:20 아침 겸 점심"},
+      {n:3, name:"서귀포잠수함", lat:33.2392, lng:126.5584, note:"12:56 도착 · 13:20 출항"},
+      {n:4, name:"천지연폭포", lat:33.2447, lng:126.5597, note:"14:45 관람 45분"},
+      {n:5, name:"중문별장 (카페 JMBJ)", lat:33.2523, lng:126.4403, note:"16:00 감귤 · 17:30 커피"},
+      {n:6, name:"까망돼지 중문점", lat:33.2574, lng:126.4134, note:"18:15 저녁", food:true},
+      {n:7, name:"도구리 3083", lat:33.2749, lng:126.1725, note:"20:30 체크인"}
+    ],
+    day2: [
+      {n:1, name:"도구리 3083", lat:33.2749, lng:126.1725, note:"11:00 체크아웃"},
+      {n:2, name:"건강과 성 박물관", lat:33.2549, lng:126.3467, note:"11:40 관람 1시간"},
+      {n:3, name:"전원일기 동광점", lat:33.3097, lng:126.3459, note:"12:55 점심", food:true},
+      {n:4, name:"제주아트서커스", lat:33.3144, lng:126.3448, note:"14:30 공연"},
+      {n:5, name:"노형수퍼마켙", lat:33.4648, lng:126.4554, note:"16:00 관람 50분"},
+      {n:6, name:"제주공항", lat:33.5068, lng:126.4927, note:"17:30 렌터카 반납"}
+    ]
+  };
+
+  function draw(id, stops){
+    const map = L.map(id, {scrollWheelZoom:false, zoomControl:true, attributionControl:true});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom:18,
+      attribution:'&copy; OpenStreetMap'
+    }).addTo(map);
+
+    L.polyline(stops.map(s=>[s.lat,s.lng]), {
+      color:'#0e7490', weight:4, opacity:.75, lineJoin:'round', dashArray:null
+    }).addTo(map);
+
+    stops.forEach(s=>{
+      const icon = L.divIcon({className:'', html:'<div class="pin '+(s.food?'food':'')+'">'+s.n+'</div>', iconSize:[26,26], iconAnchor:[13,13]});
+      L.marker([s.lat,s.lng], {icon}).addTo(map)
+        .bindPopup('<b>'+s.n+'. '+s.name+'</b><br>'+s.note);
+    });
+
+    map.fitBounds(L.latLngBounds(stops.map(s=>[s.lat,s.lng])), {padding:[34,34]});
+    // a little breathing room on tall phones
+    setTimeout(()=>map.invalidateSize(), 300);
+    return map;
+  }
+
+  draw('map1', STOPS.day1);
+  draw('map2', STOPS.day2);
+</script>
+</body>
+</html>
