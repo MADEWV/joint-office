@@ -4,13 +4,15 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>제주 1박 2일 · 12.06 – 12.07</title>
-<meta name="description" content="12월 6일~7일 제주 1박 2일 일정 — 동선 지도, 이동시간, 관람시간 정리" />
+<meta name="description" content="12월 6일~7일 제주 1박 2일 — 1일차·2일차 동선 지도, 이동시간, 관람시간 정리" />
+<meta property="og:title" content="제주 1박 2일 · 12.06 – 12.07" />
+<meta property="og:description" content="1일차·2일차 동선 지도와 이동시간 정리" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   :root{
     --sea:#0e7490;
     --sea-deep:#0b4f5f;
-    --coral:#e26d5c;
+    --coral:#d9664f;
     --sand:#faf6ef;
     --card:#ffffff;
     --ink:#1f2a30;
@@ -18,7 +20,6 @@
     --line:#e7e1d6;
   }
   *{box-sizing:border-box;}
-  html{-webkit-text-size-adjust:100%;}
   body{
     margin:0;
     background:var(--sand);
@@ -26,124 +27,116 @@
     font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
     line-height:1.55;
     -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;
   }
-  .wrap{max-width:660px;margin:0 auto;padding:0 16px 64px;}
+  .wrap{max-width:660px;margin:0 auto;padding:0 16px 60px;}
 
-  /* header */
   header{
     background:linear-gradient(160deg,#0e7490 0%,#12616f 55%,#124b57 100%);
     color:#fff;
-    padding:34px 20px 26px;
     border-radius:0 0 26px 26px;
-    text-align:center;
     box-shadow:0 8px 24px rgba(11,79,95,.18);
+    text-align:center;
   }
-  header .kicker{
-    font-size:12px;letter-spacing:.22em;opacity:.8;margin:0 0 8px;text-transform:uppercase;
-  }
-  header h1{
-    margin:0;font-size:30px;line-height:1.2;letter-spacing:-.02em;font-weight:800;
-  }
-  header .sub{margin:8px 0 0;font-size:13.5px;opacity:.9;}
-  .flights{
-    display:flex;gap:8px;margin-top:18px;
-  }
+  .hwrap{max-width:660px;margin:0 auto;padding:36px 20px 26px;}
+  header .kicker{font-size:11.5px;letter-spacing:.24em;opacity:.78;margin:0 0 9px;}
+  header h1{margin:0;font-size:31px;line-height:1.18;letter-spacing:-.03em;font-weight:800;}
+  header .sub{margin:9px 0 0;font-size:13.5px;opacity:.92;}
+  .flights{display:flex;gap:9px;margin-top:20px;}
   .flight{
     flex:1;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);
-    border-radius:14px;padding:10px 8px;text-align:left;
+    border-radius:14px;padding:10px 12px;text-align:left;
   }
-  .flight .dir{font-size:11px;opacity:.85;letter-spacing:.04em;}
-  .flight .time{font-size:19px;font-weight:800;margin-top:2px;letter-spacing:-.01em;}
+  .flight .dir{font-size:10.5px;opacity:.85;letter-spacing:.05em;}
+  .flight .time{font-size:20px;font-weight:800;margin-top:2px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
   .flight .meta{font-size:11px;opacity:.85;margin-top:1px;}
 
-  /* day section */
-  .day{margin-top:30px;}
-  .day-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
+  .day{margin-top:32px;}
+  .day-head{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
   .day-num{
-    font-size:12px;font-weight:800;letter-spacing:.14em;color:#fff;background:var(--sea);
+    font-size:11.5px;font-weight:800;letter-spacing:.14em;color:#fff;background:var(--sea);
     padding:3px 9px;border-radius:999px;
   }
-  .day-date{font-size:13px;color:var(--ink-soft);}
-  .day-title{margin:0 0 4px;font-size:21px;letter-spacing:-.02em;font-weight:800;}
-  .day-sum{margin:0 0 14px;font-size:13.5px;color:var(--ink-soft);}
+  .day-date{font-size:13px;color:var(--ink-soft);font-weight:600;}
+  .day-title{margin:0 0 5px;font-size:21px;letter-spacing:-.025em;font-weight:800;}
+  .day-sum{margin:0 0 15px;font-size:13.5px;color:var(--ink-soft);}
 
-  /* map */
   .map{
-    height:270px;border-radius:18px;overflow:hidden;border:1px solid var(--line);
-    box-shadow:0 6px 18px rgba(31,42,48,.08);margin-bottom:8px;background:#e9eef0;
+    height:272px;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+    box-shadow:0 6px 18px rgba(31,42,48,.09);background:#e9eef0;
   }
-  .map-hint{font-size:11.5px;color:var(--ink-soft);margin:0 2px 16px;}
+  .map-hint{font-size:11.5px;color:var(--ink-soft);margin:8px 2px 18px;}
 
-  /* timeline */
   .tl{position:relative;margin:0;padding:0;list-style:none;}
   .tl::before{
-    content:"";position:absolute;left:65px;top:10px;bottom:14px;width:2px;
-    background:linear-gradient(var(--line),var(--line));border-radius:2px;
+    content:"";position:absolute;left:65px;top:12px;bottom:16px;width:2px;
+    background:var(--line);border-radius:2px;
   }
-  .tl li{position:relative;display:flex;gap:0;padding:0 0 15px;}
+  .tl li{position:relative;padding:0 0 12px;}
   .when{
-    width:66px;flex:0 0 66px;text-align:right;padding-right:16px;padding-top:9px;
+    display:block;width:66px;text-align:right;padding-right:17px;padding-top:10px;
     font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;font-weight:700;
   }
   .dot{
-    position:absolute;left:59.5px;top:14px;width:13px;height:13px;border-radius:50%;
+    position:absolute;left:59.5px;top:15px;width:13px;height:13px;border-radius:50%;
     background:#fff;border:3px solid var(--sea);z-index:2;
   }
-  .tl li.eat .dot{border-color:var(--coral);}
+  .tl li.food .dot{border-color:var(--coral);}
   .box{
-    flex:1;margin-left:24px;background:var(--card);border:1px solid var(--line);
+    margin-left:24px;background:var(--card);border:1px solid var(--line);
     border-radius:14px;padding:11px 13px;box-shadow:0 2px 6px rgba(31,42,48,.04);
   }
   .box h3{margin:0;font-size:15.5px;letter-spacing:-.01em;font-weight:800;}
-  .box p{margin:4px 0 0;font-size:12.5px;color:var(--ink-soft);}
+  .box h3 small{font-weight:600;font-size:12px;color:var(--ink-soft);margin-left:4px;}
+  .box p{margin:5px 0 0;font-size:12.5px;color:var(--ink-soft);}
   .tag{
     display:inline-block;font-size:11px;font-weight:700;padding:1.5px 7px;border-radius:6px;
-    margin-right:5px;background:#eaf5f7;color:var(--sea-deep);
+    margin-right:5px;background:#e9f4f7;color:var(--sea-deep);white-space:nowrap;
   }
-  .tag.move{background:#f0f0ec;color:#6b6f66;}
-  .tag.warn{background:#fdecea;color:#b03a2b;}
-  .tag.food{background:#fdf0ec;color:#b8543f;}
+  .tag.move{background:#f1f0eb;color:#6b6f66;}
+  .tag.food{background:#fdf0ec;color:#a94a35;}
+  .tag.keep{background:#fdeeea;color:#b0392a;}
 
-  /* note card */
   .notes{
     margin-top:34px;background:#fff;border:1px solid var(--line);border-radius:18px;
     padding:18px 16px;box-shadow:0 4px 14px rgba(31,42,48,.05);
   }
-  .notes h2{margin:0 0 10px;font-size:17px;font-weight:800;letter-spacing:-.01em;}
-  .notes ul{margin:0;padding-left:18px;}
-  .notes li{font-size:13px;color:#39474d;margin-bottom:7px;}
+  .notes h2{margin:0 0 11px;font-size:17px;font-weight:800;letter-spacing:-.015em;}
+  .notes ul{margin:0;padding-left:17px;}
+  .notes li{font-size:13px;color:#39474d;margin-bottom:8px;}
   .notes li b{color:var(--ink);}
-  footer{
-    text-align:center;font-size:11.5px;color:#9aa3a6;margin-top:34px;line-height:1.7;
-  }
-  /* leaflet tweaks */
+  footer{text-align:center;font-size:11.5px;color:#9aa3a6;margin-top:32px;line-height:1.75;}
+
   .pin{
-    width:26px;height:26px;border-radius:50%;background:#fff;border:2.5px solid var(--sea);
-    color:var(--sea-deep);font-size:12px;font-weight:800;display:flex;align-items:center;
-    justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25);
+    width:24px;height:24px;border-radius:50%;background:#fff;border:2.5px solid var(--sea);
+    color:var(--sea-deep);font-size:11.5px;font-weight:800;display:flex;align-items:center;
+    justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.28);
   }
-  .pin.food{border-color:var(--coral);color:#b8543f;}
-  .leaflet-popup-content{font-family:inherit;font-size:12.5px;margin:8px 10px;}
+  .pin.food{border-color:var(--coral);color:#a94a35;}
+  .pin.end{border-color:#124b57;background:#124b57;color:#fff;}
+  .leaflet-popup-content{font-family:inherit;font-size:12.5px;margin:9px 11px;line-height:1.5;}
   .leaflet-popup-content b{font-size:13px;}
-  .leaflet-container{background:#e9eef0;}
+  .leaflet-container{background:#e9eef0;font-family:inherit;}
 </style>
 </head>
 <body>
 
 <header>
-  <p class="kicker">JEJU · 1 NIGHT 2 DAYS</p>
-  <h1>제주 1박 2일</h1>
-  <p class="sub">12월 6일(일) – 12월 7일(월) · 2명 · 렌터카</p>
-  <div class="flights">
-    <div class="flight">
-      <div class="dir">가는 편 · 12/06</div>
-      <div class="time">07:30</div>
-      <div class="meta">부산 → 제주 · BX8697</div>
-    </div>
-    <div class="flight">
-      <div class="dir">오는 편 · 12/07</div>
-      <div class="time">19:50</div>
-      <div class="meta">제주 → 부산 · BX8970</div>
+  <div class="hwrap">
+    <p class="kicker">JEJU · 1 NIGHT 2 DAYS</p>
+    <h1>제주 1박 2일</h1>
+    <p class="sub">12월 6일(일) – 12월 7일(월) · 2명 · 렌터카</p>
+    <div class="flights">
+      <div class="flight">
+        <div class="dir">가는 편 · 12/06</div>
+        <div class="time">07:30</div>
+        <div class="meta">부산 → 제주 · BX8697</div>
+      </div>
+      <div class="flight">
+        <div class="dir">오는 편 · 12/07</div>
+        <div class="time">19:50</div>
+        <div class="meta">제주 → 부산 · BX8970</div>
+      </div>
     </div>
   </div>
 </header>
@@ -154,62 +147,62 @@
   <section class="day">
     <div class="day-head"><span class="day-num">DAY 1</span><span class="day-date">12월 6일 (일)</span></div>
     <h2 class="day-title">공항 → 애월 → 서귀포 → 중문 → 대정</h2>
-    <p class="day-sum">면공장에서 아침, 잠수함 타고, 폭포 보고, 중문에서 귤 따고 커피 마시고, 흑돼지로 마무리</p>
+    <p class="day-sum">애월에서 아침 · 잠수함 · 폭포 · 귤 따기 · 커피 오마카세 · 흑돼지</p>
 
     <div class="map" id="map1"></div>
-    <p class="map-hint">지도를 움직이거나 번호를 눌러보세요. 아래 일정의 장소 순서와 같습니다.</p>
+    <p class="map-hint">번호를 누르면 장소 설명이 뜹니다. 실제 도로 경로 · 이동 시간은 티맵 예상 기준.</p>
 
     <ul class="tl">
       <li>
         <span class="when">07:30</span><span class="dot"></span>
         <div class="box">
           <h3>부산 출발 → 제주 도착</h3>
-          <p><span class="tag">비행 1시간</span>08:35 제주공항 도착 · 렌터카 인수에 30~40분</p>
+          <p><span class="tag">비행 1시간</span>08:35 도착 · 렌터카 인수 30~40분</p>
         </div>
       </li>
       <li>
-        <span class="when">09:40</span><span class="dot"></span>
+        <span class="when">10:20</span><span class="dot"></span>
         <div class="box">
-          <h3>면공장 <span style="font-weight:600;font-size:12.5px;color:#5b6b73">애월</span></h3>
-          <p><span class="tag move">공항에서 40분</span><span class="tag food">아침 겸 점심 40분</span>고기국수 · 투어패스 할인은 메뉴당 5,000원</p>
+          <h3>면공장 <small>애월</small></h3>
+          <p><span class="tag move">09:40 공항 출발 · 40분</span><span class="tag food">아침 겸 점심 40분</span></p>
         </div>
       </li>
       <li>
         <span class="when">11:00</span><span class="dot"></span>
         <div class="box">
           <h3>아르떼뮤지엄 제주</h3>
-          <p><span class="tag">바로 옆 · 도보 1분</span><span class="tag">관람 1시간</span>투어패스 있으면 1인 13,000원만 추가</p>
+          <p><span class="tag">바로 옆 · 도보 1분</span><span class="tag">관람 1시간</span>투어패스면 1인 13,000원만 추가</p>
         </div>
       </li>
       <li>
-        <span class="when">12:00</span><span class="dot"></span>
+        <span class="when">12:56</span><span class="dot"></span>
         <div class="box">
           <h3>서귀포잠수함</h3>
-          <p><span class="tag move">이동 55분</span><span class="tag">승선 70분</span>13:20 출항 → 14:30 복귀 · <b>1일 전까지 예약 필수</b></p>
+          <p><span class="tag move">12:00 출발 · 이동 55분</span><span class="tag keep">13:20 출항 · 14:30 복귀</span>1일 전까지 예약 필수</p>
         </div>
       </li>
       <li>
         <span class="when">14:45</span><span class="dot"></span>
         <div class="box">
           <h3>천지연폭포</h3>
-          <p><span class="tag move">이동 10분</span><span class="tag">관람 45분</span>주차장에서 걸어서 10분 정도</p>
+          <p><span class="tag move">이동 10분</span><span class="tag">관람 45분</span>주차장에서 걸어서 10분</p>
         </div>
       </li>
       <li>
-        <span class="when">15:35</span><span class="dot"></span>
+        <span class="when">16:00</span><span class="dot"></span>
         <div class="box">
           <h3>중문별장 · 감귤따기</h3>
-          <p><span class="tag move">이동 25분</span><span class="tag">체험 1시간</span>16:00 시작 → 17:00 마무리 · 일몰 전에 먼저</p>
+          <p><span class="tag move">이동 25분</span><span class="tag">체험 1시간</span>일몰 전에 먼저 · 비 오면 취소 가능</p>
         </div>
       </li>
-      <li class="eat">
+      <li class="food">
         <span class="when">17:30</span><span class="dot"></span>
         <div class="box">
           <h3>중문별장 · 커피 오마카세</h3>
-          <p><span class="tag">25분 · 예약제</span>정시 시작이라 10분 전 도착 · 1인 17,000원</p>
+          <p><span class="tag keep">예약제 · 25분</span>정시 시작이라 10분 전 도착</p>
         </div>
       </li>
-      <li class="eat">
+      <li class="food">
         <span class="when">18:15</span><span class="dot"></span>
         <div class="box">
           <h3>까망돼지 중문점</h3>
@@ -230,10 +223,10 @@
   <section class="day">
     <div class="day-head"><span class="day-num">DAY 2</span><span class="day-date">12월 7일 (월)</span></div>
     <h2 class="day-title">대정 → 안덕 → 제주시 → 공항</h2>
-    <p class="day-sum">11시 체크아웃해도 여유 있습니다 · 박물관 → 점심 → 서커스 → 수퍼마켙 → 공항</p>
+    <p class="day-sum">11시 체크아웃해도 여유 · 박물관 → 점심 → 서커스 → 수퍼마켙 → 공항</p>
 
     <div class="map" id="map2"></div>
-    <p class="map-hint">체크아웃이 11시라 아침은 느긋하게, 오후에는 14:30 공연 하나만 맞추면 됩니다.</p>
+    <p class="map-hint">오후에 딱 하나만 맞추면 됩니다 — 14:30 서커스 공연.</p>
 
     <ul class="tl">
       <li>
@@ -257,7 +250,7 @@
           <p><span class="tag">관람 1시간</span>1인 15,000원 · 투어패스 미포함 · 19세 이상</p>
         </div>
       </li>
-      <li class="eat">
+      <li class="food">
         <span class="when">12:55</span><span class="dot"></span>
         <div class="box">
           <h3>점심 · 전원일기 동광점</h3>
@@ -268,7 +261,7 @@
         <span class="when">14:30</span><span class="dot"></span>
         <div class="box">
           <h3>제주아트서커스</h3>
-          <p><span class="tag move">이동 2분</span><span class="tag">공연 1시간</span><b>14:00까지 도착</b> · 시작 후 입장 불가</p>
+          <p><span class="tag move">이동 2분</span><span class="tag keep">14:00 도착 필수</span><span class="tag">공연 1시간</span></p>
         </div>
       </li>
       <li>
@@ -282,10 +275,10 @@
         <span class="when">17:30</span><span class="dot"></span>
         <div class="box">
           <h3>공항 · 렌터카 반납</h3>
-          <p><span class="tag move">이동 25분</span>반납 후 셔틀로 터미널 이동 (10분)</p>
+          <p><span class="tag move">이동 25분</span>반납 후 셔틀로 터미널까지 10분</p>
         </div>
       </li>
-      <li class="eat">
+      <li class="food">
         <span class="when">19:50</span><span class="dot"></span>
         <div class="box">
           <h3>제주 출발 → 부산</h3>
@@ -299,18 +292,18 @@
   <section class="notes">
     <h2>가기 전에 챙길 것</h2>
     <ul>
-      <li><b>서귀포잠수함</b> — 탑승 1일 전까지 예약 필수(064-732-6060). 당일은 전화만 가능하고, 12/6 비 예보가 있어 해상 기상도 함께 확인.</li>
+      <li><b>서귀포잠수함</b> — 탑승 1일 전까지 예약 필수(064-732-6060). 당일은 전화만 되고, 12/6 비 예보가 있어 해상 기상도 함께 확인.</li>
       <li><b>중문별장 커피 오마카세</b> — 네이버 예약제. 정시 시작 · 10분 전 도착 · 당일 시간 변경 불가.</li>
       <li><b>감귤따기</b> — 실외 귤밭이라 비 오면 취소 가능(기상악화 100% 환불). 예약은 선결제·바로확정.</li>
       <li><b>제주아트서커스</b> — 동절기 공연이 14:30 한 타임. 기상·인원에 따라 취소될 수 있어 당일 064-794-4444 확인.</li>
       <li><b>제주투어패스</b> — 48시간권 23,900원/인. 면공장은 바코드에서 방문 시간 예약, 아르떼뮤지엄은 현장 추가금 13,000원.</li>
-      <li><b>둘째 날 11시 체크아웃</b> — 09:30 출발안보다 오히려 여유 있습니다. 유일한 고정 시간은 14:30 공연.</li>
+      <li><b>둘째 날 11시 체크아웃</b> — 09:30 출발안보다 오히려 여유 있습니다. 하루 중 고정된 시간은 14:30 공연 하나뿐.</li>
     </ul>
   </section>
 
   <footer>
-    이동 시간은 네이버·티맵 기준 예상 시간이라 당일 교통에 따라 조금 달라질 수 있어요.<br/>
-    12월 제주 일몰은 17:20쯤 · 해 지기 전에 감귤밭부터.
+    이동 시간은 티맵·네이버 기준 예상 시간이라 당일 교통에 따라 조금 달라질 수 있어요.<br/>
+    12월 제주는 17:20쯤 해가 져요 · 감귤밭부터 먼저.
   </footer>
 </div>
 
@@ -324,43 +317,50 @@
       {n:4, name:"천지연폭포", lat:33.2447, lng:126.5597, note:"14:45 관람 45분"},
       {n:5, name:"중문별장 (카페 JMBJ)", lat:33.2523, lng:126.4403, note:"16:00 감귤 · 17:30 커피"},
       {n:6, name:"까망돼지 중문점", lat:33.2574, lng:126.4134, note:"18:15 저녁", food:true},
-      {n:7, name:"도구리 3083", lat:33.2749, lng:126.1725, note:"20:30 체크인"}
+      {n:7, name:"도구리 3083", lat:33.2749, lng:126.1725, note:"20:30 체크인", end:true}
     ],
     day2: [
-      {n:1, name:"도구리 3083", lat:33.2749, lng:126.1725, note:"11:00 체크아웃"},
+      {n:1, name:"도구리 3083", lat:33.2749, lng:126.1725, note:"11:00 체크아웃", end:true},
       {n:2, name:"건강과 성 박물관", lat:33.2549, lng:126.3467, note:"11:40 관람 1시간"},
       {n:3, name:"전원일기 동광점", lat:33.3097, lng:126.3459, note:"12:55 점심", food:true},
       {n:4, name:"제주아트서커스", lat:33.3144, lng:126.3448, note:"14:30 공연"},
       {n:5, name:"노형수퍼마켙", lat:33.4648, lng:126.4554, note:"16:00 관람 50분"},
-      {n:6, name:"제주공항", lat:33.5068, lng:126.4927, note:"17:30 렌터카 반납"}
+      {n:6, name:"제주공항", lat:33.5068, lng:126.4927, note:"17:30 렌터카 반납", end:true}
     ]
   };
 
-  function draw(id, stops){
+  // 실제 도로 주행 경로 (OSRM 도로망 기준)
+  const ROUTE = {
+    day1: [[33.50655,126.49301],[33.50279,126.49186],[33.48346,126.46375],[33.4735,126.46371],[33.4638,126.45531],[33.45774,126.44387],[33.44501,126.43321],[33.4474,126.42282],[33.44542,126.41219],[33.44199,126.40796],[33.44264,126.38262],[33.43729,126.37245],[33.4378,126.36221],[33.43485,126.35468],[33.42467,126.35153],[33.40512,126.33738],[33.39623,126.34502],[33.39745,126.34601],[33.38045,126.37072],[33.36659,126.36771],[33.35487,126.36056],[33.33032,126.35438],[33.30705,126.34389],[33.28084,126.35689],[33.27819,126.37292],[33.26918,126.39247],[33.26238,126.42731],[33.25841,126.42691],[33.25249,126.44383],[33.25423,126.45945],[33.25026,126.48064],[33.24986,126.50663],[33.24693,126.52417],[33.24807,126.53239],[33.25479,126.54035],[33.25527,126.54448],[33.25194,126.55351],[33.24621,126.55308],[33.24244,126.55874],[33.23924,126.55848],[33.24469,126.55989],[33.24033,126.55799],[33.24244,126.55874],[33.24621,126.55308],[33.25207,126.55353],[33.25546,126.54395],[33.24817,126.53233],[33.24704,126.52422],[33.24998,126.50665],[33.25039,126.48066],[33.25435,126.45942],[33.25165,126.44032],[33.25186,126.42293],[33.25542,126.41355],[33.25735,126.41365],[33.25812,126.40591],[33.26425,126.39292],[33.26519,126.3725],[33.26197,126.36799],[33.25053,126.32908],[33.24997,126.28348],[33.24706,126.27595],[33.22901,126.26062],[33.22767,126.25585],[33.23532,126.23585],[33.24087,126.23307],[33.24941,126.21857],[33.26295,126.20569],[33.2692,126.19173],[33.27486,126.18889],[33.2681,126.17927],[33.2749,126.17239]],
+    day2: [[33.2749,126.17239],[33.2681,126.17927],[33.27453,126.18867],[33.26908,126.1917],[33.26316,126.20516],[33.24815,126.22001],[33.24098,126.23274],[33.23532,126.23585],[33.22767,126.25585],[33.23362,126.26546],[33.247,126.27601],[33.24967,126.28267],[33.25035,126.32826],[33.25453,126.3458],[33.25635,126.33805],[33.26121,126.3343],[33.29455,126.33027],[33.30978,126.34547],[33.33078,126.35497],[33.31439,126.34448],[33.32146,126.35118],[33.35385,126.36028],[33.36579,126.3675],[33.38857,126.37324],[33.40107,126.3799],[33.41857,126.40508],[33.42698,126.41172],[33.44831,126.43708],[33.45836,126.44468],[33.46631,126.45696],[33.46462,126.45531],[33.46312,126.45234],[33.46373,126.45542],[33.47798,126.46778],[33.49756,126.497],[33.50536,126.49623],[33.50655,126.49301]]
+  };
+
+  function draw(id, stops, route){
     const map = L.map(id, {scrollWheelZoom:false, zoomControl:true, attributionControl:true});
+
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom:18,
       attribution:'&copy; OpenStreetMap'
     }).addTo(map);
 
-    L.polyline(stops.map(s=>[s.lat,s.lng]), {
-      color:'#0e7490', weight:4, opacity:.75, lineJoin:'round', dashArray:null
-    }).addTo(map);
+    // halo then line, so it reads on any tile colour
+    L.polyline(route, {color:'#ffffff', weight:8, opacity:.85, lineCap:'round', lineJoin:'round'}).addTo(map);
+    L.polyline(route, {color:'#0e7490', weight:4, opacity:.9, lineCap:'round', lineJoin:'round'}).addTo(map);
 
     stops.forEach(s=>{
-      const icon = L.divIcon({className:'', html:'<div class="pin '+(s.food?'food':'')+'">'+s.n+'</div>', iconSize:[26,26], iconAnchor:[13,13]});
-      L.marker([s.lat,s.lng], {icon}).addTo(map)
+      const cls = 'pin' + (s.food ? ' food' : '') + (s.end ? ' end' : '');
+      const icon = L.divIcon({className:'', html:'<div class="'+cls+'">'+s.n+'</div>', iconSize:[24,24], iconAnchor:[12,12]});
+      L.marker([s.lat,s.lng], {icon, title:s.name}).addTo(map)
         .bindPopup('<b>'+s.n+'. '+s.name+'</b><br>'+s.note);
     });
 
-    map.fitBounds(L.latLngBounds(stops.map(s=>[s.lat,s.lng])), {padding:[34,34]});
-    // a little breathing room on tall phones
-    setTimeout(()=>map.invalidateSize(), 300);
+    map.fitBounds(L.latLngBounds(route), {padding:[30,30]});
+    setTimeout(()=>map.invalidateSize(), 250);
     return map;
   }
 
-  draw('map1', STOPS.day1);
-  draw('map2', STOPS.day2);
+  draw('map1', STOPS.day1, ROUTE.day1);
+  draw('map2', STOPS.day2, ROUTE.day2);
 </script>
 </body>
 </html>
